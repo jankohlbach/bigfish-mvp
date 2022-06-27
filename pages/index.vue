@@ -49,18 +49,17 @@ export default Vue.extend({
       color: 0x000000,
       // map: gridTexture,
     });
-    const plane = new THREE.Mesh(geometry, material);
-    const plane2 = new THREE.Mesh(geometry, material);
 
+    const plane = new THREE.Mesh(geometry, material);
     plane.rotation.x = Math.PI / 2;
     plane.rotation.y = Math.PI / 4;
     plane.position.z = -PLANE_OFFSET;
+    scene.add(plane);
 
+    const plane2 = new THREE.Mesh(geometry, material);
     plane2.rotation.x = Math.PI / 2;
     plane2.rotation.y = Math.PI / 4;
     plane2.position.z = -PLANE_OFFSET - geometryLength;
-
-    scene.add(plane);
     scene.add(plane2);
 
     // const ambientLight = new THREE.AmbientLight(0xffffff, 10);
@@ -69,6 +68,8 @@ export default Vue.extend({
     RectAreaLightUniformsLib.init();
 
     const rectLights: any[] = [];
+    const cases: any[] = [];
+
     for (let i = 0; i < ITEMS_COUNT; i += 1) {
       // remember for an also interesting light effect
       // rectLight1.position.x = -0.07;
@@ -88,6 +89,25 @@ export default Vue.extend({
       scene.add(rectLight2);
       scene.add(new RectAreaLightHelper(rectLight2));
       rectLights.push(rectLight2);
+
+      const caseGeometry = new THREE.PlaneGeometry(0.08, 0.08, 1, 1);
+      const caseMaterial = new THREE.MeshStandardMaterial({
+        color: 0x00ffbf,
+      });
+
+      const case1 = new THREE.Mesh(caseGeometry, caseMaterial);
+      case1.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
+      case1.position.x = i % 2 === 0 ? -0.07 : 0.07;
+      case1.position.z = ITEM_OFFSET - (i * ITEM_SPACE);
+      scene.add(case1);
+      cases.push(case1);
+
+      const case2 = new THREE.Mesh(caseGeometry, caseMaterial);
+      case2.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
+      case2.position.x = i % 2 === 0 ? -0.07 : 0.07;
+      case2.position.z = ITEM_OFFSET - (i * ITEM_SPACE);
+      scene.add(case2);
+      cases.push(case2);
     }
 
     const sizes = {
@@ -133,8 +153,11 @@ export default Vue.extend({
       for (let i = 0; i < ITEMS_COUNT * 2; i += 2) {
         rectLights[i].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE);
         rectLights[i].intensity = LIGHT_INTENSITY + rectLights[i].position.z * 1.5 * LIGHT_INTENSITY;
+        cases[i].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE);
+
         rectLights[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
         rectLights[i + 1].intensity = LIGHT_INTENSITY + rectLights[i + 1].position.z * 1.5 * LIGHT_INTENSITY;
+        cases[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
       }
 
       // controls.update();
