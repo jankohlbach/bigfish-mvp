@@ -140,10 +140,8 @@ export default Vue.extend({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
 
-    const clock = new THREE.Clock();
-
-    const render = () => {
-      const elapsedTime = clock.getElapsedTime();
+    const render = (ts: number) => {
+      const elapsedTime = ts / 1000;
 
       const speed = 0.15;
 
@@ -166,7 +164,7 @@ export default Vue.extend({
       window.requestAnimationFrame(render);
     };
 
-    render();
+    render(0);
   }
 })
 </script>
