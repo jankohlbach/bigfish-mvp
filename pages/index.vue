@@ -70,13 +70,15 @@ export default Vue.extend({
     const rectLights: any[] = [];
     const cases: any[] = [];
 
+    const HALF_TUBE = 0.07;
+
     for (let i = 0; i < ITEMS_COUNT; i += 1) {
       // remember for an also interesting light effect
-      // rectLight1.position.x = -0.07;
+      // rectLight1.position.x = -HALF_TUBE;
 
       const rectLight1 = new THREE.RectAreaLight(0xffffff, LIGHT_INTENSITY - (Math.min(i, 2) * LIGHT_INTENSITY / 2), 0.005, 0.125);
       rectLight1.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-      rectLight1.position.x = i % 2 === 0 ? 0.07 : -0.07;
+      rectLight1.position.x = i % 2 === 0 ? HALF_TUBE : -HALF_TUBE;
       rectLight1.position.z = ITEM_OFFSET - (i * ITEM_SPACE);
       scene.add(rectLight1);
       scene.add(new RectAreaLightHelper(rectLight1));
@@ -84,7 +86,7 @@ export default Vue.extend({
 
       const rectLight2 = new THREE.RectAreaLight(0xffffff, 0, 0.005, 0.125);
       rectLight2.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-      rectLight2.position.x = i % 2 === 0 ? 0.07 : -0.07;
+      rectLight2.position.x = i % 2 === 0 ? HALF_TUBE : -HALF_TUBE;
       rectLight2.position.z = ITEM_OFFSET - (i * ITEM_SPACE) - geometryLength;
       scene.add(rectLight2);
       scene.add(new RectAreaLightHelper(rectLight2));
@@ -97,14 +99,14 @@ export default Vue.extend({
 
       const case1 = new THREE.Mesh(caseGeometry, caseMaterial);
       case1.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-      case1.position.x = i % 2 === 0 ? -0.07 : 0.07;
+      case1.position.x = i % 2 === 0 ? -HALF_TUBE : HALF_TUBE;
       case1.position.z = ITEM_OFFSET - (i * ITEM_SPACE);
       scene.add(case1);
       cases.push(case1);
 
       const case2 = new THREE.Mesh(caseGeometry, caseMaterial);
       case2.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-      case2.position.x = i % 2 === 0 ? -0.07 : 0.07;
+      case2.position.x = i % 2 === 0 ? -HALF_TUBE : HALF_TUBE;
       case2.position.z = ITEM_OFFSET - (i * ITEM_SPACE);
       scene.add(case2);
       cases.push(case2);
@@ -156,7 +158,7 @@ export default Vue.extend({
         rectLights[i + 1].intensity = LIGHT_INTENSITY + rectLights[i + 1].position.z * 1.5 * LIGHT_INTENSITY;
         cases[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
 
-        const range = 0.7;
+        const range = 0.75;
         const currentCase = cases[i];
         const duplicatedCase = cases[i + 1];
         if (currentCase.position.z > 0 && currentCase.position.z < range || duplicatedCase.position.z > 0 && duplicatedCase.position.z < range) {
@@ -165,9 +167,13 @@ export default Vue.extend({
           if (i % 4 === 0) {
             // turn camera to left (Math.PI / 2)
             camera.rotation.y = Math.max(Math.PI / 4 - Math.abs(casePositionZ * (1 / (range / 2))), 0);
+            // move camera to the right (only works because HALF_TUBE and range fit kind of together)
+            camera.position.x = Math.max(HALF_TUBE - Math.abs(casePositionZ * 0.2 * (1 / (range))), 0);
           } else {
             // turn camera to right (-Math.PI / 2)
             camera.rotation.y = Math.min(-Math.PI / 4 + Math.abs(casePositionZ * (1 / (range / 2))), 0);
+            // move camera to the left (only works because HALF_TUBE and range fit kind of together)
+            camera.position.x = Math.min(-HALF_TUBE + Math.abs(casePositionZ * 0.2 * (1 / (range))), 0);
           }
         }
       }
