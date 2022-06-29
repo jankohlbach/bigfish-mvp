@@ -144,7 +144,7 @@ export default Vue.extend({
     const render = (ts: number) => {
       const elapsedTime = ts / 1000;
 
-      const speed = 0.05;
+      const speed = 0.1;
 
       tube1.position.z = (elapsedTime * speed) % geometryLength;
       tube2.position.z = ((elapsedTime * speed) % geometryLength) - geometryLength;
@@ -162,7 +162,7 @@ export default Vue.extend({
         const currentCase = cases[i];
         const duplicatedCase = cases[i + 1];
         if (currentCase.position.z > 0 && currentCase.position.z < range || duplicatedCase.position.z > 0 && duplicatedCase.position.z < range) {
-          const casePositionZ = currentCase.position.z < range ? currentCase.position.z - (range / 2) : duplicatedCase.position.z - (range / 2);
+          const casePositionZ = currentCase.position.z < range ? currentCase.position.z - (range / 2.5) : duplicatedCase.position.z - (range / 2.5);
 
           if (i % 4 === 0) {
             // turn camera to left (Math.PI / 2)
