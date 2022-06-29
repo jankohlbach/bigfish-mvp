@@ -29,16 +29,16 @@ export default Vue.extend({
 
     const ITEMS_COUNT = 4;
     const ITEM_SPACE = 0.7;
-    const ITEM_OFFSET = 0.2;
-    const PLANE_OFFSET = -0.5;
+    const ITEM_OFFSET = -0.1;
+    const TUBE_OFFSET = -0.5;
     const LIGHT_INTENSITY = 1000;
 
-    const geometryLength = ITEMS_COUNT * ITEM_SPACE;
+    const geometryLength = ITEMS_COUNT * ITEM_SPACE + Math.abs(ITEM_OFFSET);
 
     const scene = new THREE.Scene();
 
-    const fog = new THREE.Fog(0x000000, geometryLength - ITEM_OFFSET, geometryLength);
-    scene.fog = fog;
+    // const fog = new THREE.Fog(0x000000, geometryLength - ITEM_OFFSET, geometryLength);
+    // scene.fog = fog;
 
     // const textureLoader = new THREE.TextureLoader();
     // const gridTexture = textureLoader.load(TEXTURE_PATH);
@@ -50,17 +50,17 @@ export default Vue.extend({
       // map: gridTexture,
     });
 
-    const plane = new THREE.Mesh(geometry, material);
-    plane.rotation.x = Math.PI / 2;
-    plane.rotation.y = Math.PI / 4;
-    plane.position.z = -PLANE_OFFSET;
-    scene.add(plane);
+    const tube1 = new THREE.Mesh(geometry, material);
+    tube1.rotation.x = Math.PI / 2;
+    tube1.rotation.y = Math.PI / 4;
+    tube1.position.z = -TUBE_OFFSET;
+    scene.add(tube1);
 
-    const plane2 = new THREE.Mesh(geometry, material);
-    plane2.rotation.x = Math.PI / 2;
-    plane2.rotation.y = Math.PI / 4;
-    plane2.position.z = -PLANE_OFFSET - geometryLength;
-    scene.add(plane2);
+    const tube2 = new THREE.Mesh(geometry, material);
+    tube2.rotation.x = Math.PI / 2;
+    tube2.rotation.y = Math.PI / 4;
+    tube2.position.z = -TUBE_OFFSET - geometryLength;
+    scene.add(tube2);
 
     // const ambientLight = new THREE.AmbientLight(0xffffff, 10);
     // scene.add(ambientLight);
@@ -92,7 +92,7 @@ export default Vue.extend({
 
       const caseGeometry = new THREE.PlaneGeometry(0.08, 0.08, 1, 1);
       const caseMaterial = new THREE.MeshStandardMaterial({
-        color: 0x00ffbf,
+        color: i === 0 ? 0x00ff00 : 0x00ffbf,
       });
 
       const case1 = new THREE.Mesh(caseGeometry, caseMaterial);
@@ -117,7 +117,6 @@ export default Vue.extend({
 
     const camera = new THREE.PerspectiveCamera(50, sizes.width / sizes.height, 0.01, LIGHT_INTENSITY);
 
-    camera.position.y = -0.03;
     camera.position.z = 0.45;
 
     // const controls = new OrbitControls(camera, canvas);
@@ -143,10 +142,10 @@ export default Vue.extend({
     const render = (ts: number) => {
       const elapsedTime = ts / 1000;
 
-      const speed = 0.15;
+      const speed = 0.05;
 
-      plane.position.z = (elapsedTime * speed) % geometryLength;
-      plane2.position.z = ((elapsedTime * speed) % geometryLength) - geometryLength;
+      tube1.position.z = (elapsedTime * speed) % geometryLength;
+      tube2.position.z = ((elapsedTime * speed) % geometryLength) - geometryLength;
 
       for (let i = 0; i < ITEMS_COUNT * 2; i += 2) {
         rectLights[i].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE);
@@ -156,6 +155,21 @@ export default Vue.extend({
         rectLights[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
         rectLights[i + 1].intensity = LIGHT_INTENSITY + rectLights[i + 1].position.z * 1.5 * LIGHT_INTENSITY;
         cases[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
+
+        const range = 0.7;
+        const currentCase = cases[i];
+        const duplicatedCase = cases[i + 1];
+        if (currentCase.position.z > 0 && currentCase.position.z < range || duplicatedCase.position.z > 0 && duplicatedCase.position.z < range) {
+          const casePositionZ = currentCase.position.z < range ? currentCase.position.z - (range / 2) : duplicatedCase.position.z - (range / 2);
+
+          if (i % 4 === 0) {
+            // turn camera to left (Math.PI / 2)
+            camera.rotation.y = Math.max(Math.PI / 4 - Math.abs(casePositionZ * (1 / (range / 2))), 0);
+          } else {
+            // turn camera to right (-Math.PI / 2)
+            camera.rotation.y = Math.min(-Math.PI / 4 + Math.abs(casePositionZ * (1 / (range / 2))), 0);
+          }
+        }
       }
 
       // controls.update();
