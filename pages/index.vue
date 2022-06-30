@@ -8,6 +8,7 @@ import normalizeWheel from 'normalize-wheel';
 import * as THREE from 'three';
 import {RectAreaLightHelper} from 'three/examples/jsm/helpers/RectAreaLightHelper.js';
 import {RectAreaLightUniformsLib} from'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
+// import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 
 export default Vue.extend({
   name: 'IndexPage',
@@ -16,22 +17,23 @@ export default Vue.extend({
     return ({
       ITEMS_COUNT: 4,
       ITEM_SPACE: 0.7,
-      ITEM_OFFSET: -0.1,
-      TUBE_OFFSET: -0.5,
+      ITEM_OFFSET: 0.3,
+      TUBE_OFFSET: 0.2,
+      CAMERA_OFFSET: 0.2,
       HALF_TUBE: 0.07,
       LIGHT_INTENSITY: 1000,
       geometryLength: 0,
-      zPosition: {
-        current: 0,
-        target: 0,
+      scroll: {
+        current: 1,
+        target: 1,
+        base: 1,
       },
-      speed: 0.001,
+      speed: 0.0008,
       canvas: null as HTMLCanvasElement | null,
       scene: null as unknown as THREE.Scene,
       camera: null as unknown as  THREE.PerspectiveCamera,
       renderer: null as unknown as  THREE.WebGLRenderer,
-      tube1: null as unknown as THREE.Mesh,
-      tube2: null as unknown as THREE.Mesh,
+      tube: null as unknown as THREE.Mesh,
       rectLights: [] as THREE.RectAreaLight[],
       cases: [] as THREE.Mesh[],
       sizes: {
@@ -51,14 +53,19 @@ export default Vue.extend({
     },
     addWheelEvent() {
       window.addEventListener('wheel', (e) => {
-        this.zPosition.target = this.zPosition.current + Math.abs(normalizeWheel(e).pixelY / 100);
+        const normalized = normalizeWheel(e).pixelY;
 
-        // TODO: check how to make reverse scrolling possible
-        // if (this.zPosition.target >= this.zPosition.current) {
-        //   this.speed = Math.abs(this.speed);
-        // } else {
-        //   this.speed = -Math.abs(this.speed);
-        // }
+        if (normalized > 0) {
+          this.scroll.target = this.scroll.current + Math.max(normalizeWheel(e).pixelY / 100, 0.03);
+        } else {
+          this.scroll.target = this.scroll.current + Math.min(normalizeWheel(e).pixelY / 100, -0.03);
+        }
+
+        if (this.scroll.target > 0) {
+          this.scroll.base = Math.abs(this.scroll.base);
+        } else {
+          this.scroll.base = -Math.abs(this.scroll.base);
+        }
       });
     },
     addResizeEvent() {
@@ -82,9 +89,9 @@ export default Vue.extend({
 
       this.scene = new THREE.Scene();
 
-      this.geometryLength = this.ITEMS_COUNT * this.ITEM_SPACE + Math.abs(this.ITEM_OFFSET);
+      this.geometryLength = this.TUBE_OFFSET + this.ITEM_OFFSET + this.ITEMS_COUNT * this.ITEM_SPACE;
 
-      this.makeTubes();
+      this.makeTube();
       this.makeLightsAndCases();
       this.makeCamera();
       this.makeRenderer();
@@ -92,63 +99,42 @@ export default Vue.extend({
       this.makeRenderLoop();
       this.addWheelEvent();
     },
-    makeTubes() {
+    makeTube() {
       const geometry = new THREE.CylinderGeometry(0.1, 0.1, this.geometryLength, 4, 1, true);
       const material = new THREE.MeshStandardMaterial({
         side: THREE.BackSide,
         color: 0x000000,
       });
 
-      this.tube1 = new THREE.Mesh(geometry, material);
-      this.tube1.rotation.x = Math.PI / 2;
-      this.tube1.rotation.y = Math.PI / 4;
-      this.tube1.position.z = -this.TUBE_OFFSET;
-      this.scene.add(this.tube1);
-
-      this.tube2 = new THREE.Mesh(geometry, material);
-      this.tube2.rotation.x = Math.PI / 2;
-      this.tube2.rotation.y = Math.PI / 4;
-      this.tube2.position.z = -this.TUBE_OFFSET - this.geometryLength;
-      this.scene.add(this.tube2);
+      this.tube = new THREE.Mesh(geometry, material);
+      this.tube.rotation.x = Math.PI / 2;
+      this.tube.rotation.y = Math.PI / 4;
+      this.tube.position.z = -this.geometryLength / 2 + this.TUBE_OFFSET;
+      this.scene.add(this.tube);
     },
     makeLightsAndCases() {
       RectAreaLightUniformsLib.init();
 
       for (let i = 0; i < this.ITEMS_COUNT; i += 1) {
-        const rectLight1 = new THREE.RectAreaLight(0xffffff, this.LIGHT_INTENSITY - (Math.min(i, 2) * this.LIGHT_INTENSITY / 2), 0.005, 0.125);
-        rectLight1.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-        rectLight1.position.x = i % 2 === 0 ? this.HALF_TUBE : -this.HALF_TUBE;
-        rectLight1.position.z = this.ITEM_OFFSET - (i * this.ITEM_SPACE);
-        this.scene.add(rectLight1);
-        this.scene.add(new RectAreaLightHelper(rectLight1));
-        this.rectLights.push(rectLight1);
-
-        const rectLight2 = new THREE.RectAreaLight(0xffffff, 0, 0.005, 0.125);
-        rectLight2.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-        rectLight2.position.x = i % 2 === 0 ? this.HALF_TUBE : -this.HALF_TUBE;
-        rectLight2.position.z = this.ITEM_OFFSET - (i * this.ITEM_SPACE) - this.geometryLength;
-        this.scene.add(rectLight2);
-        this.scene.add(new RectAreaLightHelper(rectLight2));
-        this.rectLights.push(rectLight2);
+        const rectLight = new THREE.RectAreaLight(0xffffff, this.LIGHT_INTENSITY - (Math.min(i, 2) * this.LIGHT_INTENSITY / 2), 0.005, 0.125);
+        rectLight.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
+        rectLight.position.x = i % 2 === 0 ? this.HALF_TUBE : -this.HALF_TUBE;
+        rectLight.position.z = -this.ITEM_OFFSET - (i * this.ITEM_SPACE);
+        this.scene.add(rectLight);
+        this.scene.add(new RectAreaLightHelper(rectLight));
+        this.rectLights.push(rectLight);
 
         const caseGeometry = new THREE.PlaneGeometry(0.08, 0.08, 1, 1);
         const caseMaterial = new THREE.MeshStandardMaterial({
           color: i === 0 ? 0x00ff00 : 0x00ffbf,
         });
 
-        const case1 = new THREE.Mesh(caseGeometry, caseMaterial);
-        case1.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-        case1.position.x = i % 2 === 0 ? -this.HALF_TUBE : this.HALF_TUBE;
-        case1.position.z = this.ITEM_OFFSET - (i * this.ITEM_SPACE);
-        this.scene.add(case1);
-        this.cases.push(case1);
-
-        const case2 = new THREE.Mesh(caseGeometry, caseMaterial);
-        case2.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-        case2.position.x = i % 2 === 0 ? -this.HALF_TUBE : this.HALF_TUBE;
-        case2.position.z = this.ITEM_OFFSET - (i * this.ITEM_SPACE) - this.geometryLength;
-        this.scene.add(case2);
-        this.cases.push(case2);
+        const newCase = new THREE.Mesh(caseGeometry, caseMaterial);
+        newCase.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
+        newCase.position.x = i % 2 === 0 ? -this.HALF_TUBE : this.HALF_TUBE;
+        newCase.position.z = -this.ITEM_OFFSET - (i * this.ITEM_SPACE);
+        this.scene.add(newCase);
+        this.cases.push(newCase);
       }
     },
     makeCamera() {
@@ -157,8 +143,8 @@ export default Vue.extend({
         height: window.innerHeight,
       };
 
-      this.camera = new THREE.PerspectiveCamera(50, this.sizes.width / this.sizes.height, 0.01, this.LIGHT_INTENSITY);
-      this.camera.position.z = 0.45;
+      this.camera = new THREE.PerspectiveCamera(50, this.sizes.width / this.sizes.height, 0.01, 1000);
+      this.camera.position.z = this.CAMERA_OFFSET;
     },
     makeRenderer() {
       this.renderer = new THREE.WebGLRenderer({canvas: this.canvas as HTMLCanvasElement});
@@ -166,57 +152,48 @@ export default Vue.extend({
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     },
     makeRenderLoop() {
+      // const controls = new OrbitControls(this.camera, this.canvas as HTMLCanvasElement);
+      // controls.enableDamping = true;
+      // controls.enableZoom = false;
+
       const render = () => {
-        this.zPosition.target += this.speed;
+        for (let i = 0; i < this.ITEMS_COUNT; i += 1) {
+          this.scroll.current = this.lerp(this.scroll.target, this.scroll.base, 0.2);
 
-        this.zPosition.current = this.lerp(this.zPosition.current, this.zPosition.target, 0.05);
+          this.cases[i].position.z += this.speed * this.scroll.current;
+          this.rectLights[i].position.z += this.speed * this.scroll.current;
 
-        this.tube1.position.z = this.zPosition.current % this.geometryLength;
-        if (this.speed >= 0) {
-          this.tube2.position.z = (this.zPosition.current % this.geometryLength) - this.geometryLength;
-        } else {
-          this.tube2.position.z = (this.zPosition.current % this.geometryLength) + this.geometryLength;
-        }
-
-        for (let i = 0; i < this.ITEMS_COUNT * 2; i += 2) {
-          this.cases[i].position.z = this.ITEM_OFFSET + (this.zPosition.current % this.geometryLength) - (i / 2 * this.ITEM_SPACE);
-          this.rectLights[i].position.z = this.ITEM_OFFSET + (this.zPosition.current % this.geometryLength) - (i / 2 * this.ITEM_SPACE);
-          this.rectLights[i].intensity = this.LIGHT_INTENSITY + this.rectLights[i].position.z * 1.5 * this.LIGHT_INTENSITY;
-
-          if (this.speed >= 0) {
-            this.cases[i + 1].position.z = this.ITEM_OFFSET + (this.zPosition.current % this.geometryLength) - (i / 2 * this.ITEM_SPACE) - this.geometryLength;
-            this.rectLights[i + 1].position.z = this.ITEM_OFFSET + (this.zPosition.current % this.geometryLength) - (i / 2 * this.ITEM_SPACE) - this.geometryLength;
-          } else {
-            this.cases[i + 1].position.z = this.ITEM_OFFSET + (this.zPosition.current % this.geometryLength) - (i / 2 * this.ITEM_SPACE) + this.geometryLength;
-            this.rectLights[i + 1].position.z = this.ITEM_OFFSET + (this.zPosition.current % this.geometryLength) - (i / 2 * this.ITEM_SPACE) + this.geometryLength;
+          if (this.scroll.base > 0 && this.cases[i].position.z > this.ITEM_OFFSET) {
+            this.cases[i].position.z = this.cases[i].position.z - this.geometryLength + this.TUBE_OFFSET;
+            this.rectLights[i].position.z = this.rectLights[i].position.z - this.geometryLength + this.TUBE_OFFSET;
+          } else if (this.scroll.base < 0 && this.cases[i].position.z < -this.geometryLength + this.TUBE_OFFSET + this.ITEM_SPACE) {
+            this.cases[i].position.z = this.cases[i].position.z + this.geometryLength - this.TUBE_OFFSET;
+            this.rectLights[i].position.z = this.rectLights[i].position.z + this.geometryLength - this.TUBE_OFFSET;
           }
-          this.rectLights[i + 1].intensity = this.LIGHT_INTENSITY + this.rectLights[i + 1].position.z * 1.5 * this.LIGHT_INTENSITY;
 
-          const range = 0.75;
+          this.rectLights[i].intensity = this.LIGHT_INTENSITY + this.rectLights[i].position.z * this.LIGHT_INTENSITY;
+
+          const range = 0.2;
+          const turn = Math.PI / 4;
           const currentCase = this.cases[i];
-          const duplicatedCase = this.cases[i + 1];
-          if (currentCase.position.z > 0 && currentCase.position.z < range || duplicatedCase.position.z > 0 && duplicatedCase.position.z < range) {
-            let casePositionZ = 0;
+          if (currentCase.position.z > -range && currentCase.position.z < range) {
+            const casePositionZ = currentCase.position.z;
 
-            if (this.speed >= 0) {
-              casePositionZ = currentCase.position.z < range ? currentCase.position.z - (range / 2.5) : duplicatedCase.position.z - (range / 2.5);
-            } else {
-              casePositionZ = currentCase.position.z < range ? duplicatedCase.position.z - (range / 2.5) : currentCase.position.z - (range / 2.5);
-            }
-
-            if (i % 4 === 0) {
+            if (i % 2 === 0) {
               // turn camera to left (Math.PI / 2)
-              this.camera.rotation.y = Math.max(Math.PI / 4 - Math.abs(casePositionZ * (1 / (range / 2))), 0);
-              // move camera to the right (only works because HALF_TUBE and range fit kind of together)
-              this.camera.position.x = Math.max(this.HALF_TUBE - Math.abs(casePositionZ * 0.2 * (1 / (range))), 0);
+              this.camera.rotation.y = Math.max(turn - Math.abs(casePositionZ * ((turn) / range)), 0);
+              // move camera to right
+              this.camera.position.x = Math.max(this.HALF_TUBE - Math.abs((casePositionZ * (this.HALF_TUBE / range))), 0);
             } else {
               // turn camera to right (-Math.PI / 2)
-              this.camera.rotation.y = Math.min(-Math.PI / 4 + Math.abs(casePositionZ * (1 / (range / 2))), 0);
-              // move camera to the left (only works because HALF_TUBE and range fit kind of together)
-              this.camera.position.x = Math.min(-this.HALF_TUBE + Math.abs(casePositionZ * 0.2 * (1 / (range))), 0);
+              this.camera.rotation.y = Math.min(-turn + Math.abs(casePositionZ * ((turn) / range)), 0);
+              // move camera to left
+              this.camera.position.x = Math.min(-this.HALF_TUBE + Math.abs((casePositionZ * (this.HALF_TUBE / range))), 0);
             }
           }
         }
+
+        // controls.update();
 
         this.renderer.render(this.scene, this.camera);
         window.requestAnimationFrame(render);
