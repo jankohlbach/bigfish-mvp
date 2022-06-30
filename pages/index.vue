@@ -121,10 +121,6 @@ export default Vue.extend({
 
     camera.position.z = 0.45;
 
-    // const controls = new OrbitControls(camera, canvas);
-    // controls.enableDamping = true;
-    // controls.enableZoom = false;
-
     const renderer = new THREE.WebGLRenderer({canvas});
 
     renderer.setSize(sizes.width, sizes.height);
@@ -141,28 +137,47 @@ export default Vue.extend({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
 
+    // const controls = new OrbitControls(camera, canvas);
+    // controls.enableDamping = true;
+    // controls.enableZoom = false;
+
     const render = (ts: number) => {
       const elapsedTime = ts / 1000;
 
       const speed = 0.1;
 
       tube1.position.z = (elapsedTime * speed) % geometryLength;
-      tube2.position.z = ((elapsedTime * speed) % geometryLength) - geometryLength;
+      if (speed > 0) {
+        tube2.position.z = ((elapsedTime * speed) % geometryLength) - geometryLength;
+      } else {
+        tube2.position.z = ((elapsedTime * speed) % geometryLength) + geometryLength;
+      }
 
       for (let i = 0; i < ITEMS_COUNT * 2; i += 2) {
+        cases[i].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE);
         rectLights[i].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE);
         rectLights[i].intensity = LIGHT_INTENSITY + rectLights[i].position.z * 1.5 * LIGHT_INTENSITY;
-        cases[i].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE);
 
-        rectLights[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
+        if (speed > 0) {
+          cases[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
+          rectLights[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
+        } else {
+          cases[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) + geometryLength;
+          rectLights[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) + geometryLength;
+        }
         rectLights[i + 1].intensity = LIGHT_INTENSITY + rectLights[i + 1].position.z * 1.5 * LIGHT_INTENSITY;
-        cases[i + 1].position.z = ITEM_OFFSET + ((elapsedTime * speed) % geometryLength) - (i / 2 * ITEM_SPACE) - geometryLength;
 
         const range = 0.75;
         const currentCase = cases[i];
         const duplicatedCase = cases[i + 1];
         if (currentCase.position.z > 0 && currentCase.position.z < range || duplicatedCase.position.z > 0 && duplicatedCase.position.z < range) {
-          const casePositionZ = currentCase.position.z < range ? currentCase.position.z - (range / 2.5) : duplicatedCase.position.z - (range / 2.5);
+          let casePositionZ = 0;
+
+          if (speed > 0) {
+            casePositionZ = currentCase.position.z < range ? currentCase.position.z - (range / 2.5) : duplicatedCase.position.z - (range / 2.5);
+          } else {
+            casePositionZ = currentCase.position.z < range ? duplicatedCase.position.z - (range / 2.5) : currentCase.position.z - (range / 2.5);
+          }
 
           if (i % 4 === 0) {
             // turn camera to left (Math.PI / 2)
