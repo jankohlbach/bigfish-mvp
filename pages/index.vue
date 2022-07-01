@@ -23,12 +23,16 @@ export default Vue.extend({
       HALF_TUBE: 0.07,
       LIGHT_INTENSITY: 1000,
       geometryLength: 0,
+      touch: {
+        start: 0,
+      },
       scroll: {
         current: 1,
         target: 1,
         base: 1,
       },
       speed: 0.0008,
+      isTouchDown: false,
       canvas: null as HTMLCanvasElement | null,
       scene: null as unknown as THREE.Scene,
       camera: null as unknown as  THREE.PerspectiveCamera,
@@ -68,6 +72,47 @@ export default Vue.extend({
         }
       });
     },
+    addTouchEvent() {
+      window.addEventListener('touchstart', (e) => {
+        this.isTouchDown = true;
+        this.touch.start = e.touches[0].clientY;
+      });
+
+      window.addEventListener('touchmove', (e) => {
+        if (!this.isTouchDown) { return; }
+
+        const y = e.touches[0].clientY;
+        const distance = (this.touch.start - y) / 10;
+
+        this.scroll.target = this.scroll.current + distance;
+
+        if (this.scroll.target > 0) {
+          this.scroll.base = Math.abs(this.scroll.base);
+        } else {
+          this.scroll.base = -Math.abs(this.scroll.base);
+        }
+
+        this.touch.start = y;
+      });
+
+      window.addEventListener('touchend', () => {
+        this.isTouchDown = false;
+
+        let raf: any;
+
+        const lerpBack = () => {
+          this.scroll.target = this.lerp(this.scroll.target, this.scroll.base, 0.05);
+
+          raf = window.requestAnimationFrame(lerpBack);
+        };
+
+        lerpBack();
+
+        setTimeout(() => {
+          cancelAnimationFrame(raf);
+        }, 1000);
+      });
+    },
     addResizeEvent() {
       window.addEventListener('resize', () => {
       this.sizes.width = window.innerWidth;
@@ -98,6 +143,7 @@ export default Vue.extend({
       this.addResizeEvent();
       this.makeRenderLoop();
       this.addWheelEvent();
+      this.addTouchEvent();
     },
     makeTube() {
       const geometry = new THREE.CylinderGeometry(0.1, 0.1, this.geometryLength, 4, 1, true);
