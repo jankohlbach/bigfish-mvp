@@ -115,15 +115,15 @@ export default Vue.extend({
     },
     addResizeEvent() {
       window.addEventListener('resize', () => {
-      this.sizes.width = window.innerWidth;
-      this.sizes.height = window.innerHeight;
+        this.sizes.width = window.innerWidth;
+        this.sizes.height = window.innerHeight;
 
-      this.camera.aspect = this.sizes.width / this.sizes.height;
-      this.camera.updateProjectionMatrix();
+        this.camera.aspect = this.sizes.width / this.sizes.height;
+        this.camera.updateProjectionMatrix();
 
-      this.renderer.setSize(this.sizes.width, this.sizes.height);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    });
+        this.renderer.setSize(this.sizes.width, this.sizes.height);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      });
     },
     initThree() {
       this.canvas = document.querySelector('#canvas');
@@ -250,3 +250,9 @@ export default Vue.extend({
   },
 })
 </script>
+
+<style>
+canvas {
+  display: block;
+}
+</style>
