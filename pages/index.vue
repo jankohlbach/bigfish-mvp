@@ -1,5 +1,13 @@
 <template>
-  <canvas id="canvas"></canvas>
+  <div>
+    <canvas id="canvas"></canvas>
+    <div id="images">
+      <img src="~/assets/images/dfb.jpeg" style="display: none">
+      <img src="~/assets/images/dmc2.jpeg" style="display: none">
+      <img src="~/assets/images/porsche.jpeg" style="display: none">
+      <img src="~/assets/images/privatedinner.jpeg" style="display: none">
+    </div>
+  </div>
 </template>
 
 <script lang="ts">
@@ -16,7 +24,7 @@ export default Vue.extend({
   data() {
     return ({
       ITEMS_COUNT: 4,
-      ITEM_SPACE: 0.7,
+      ITEM_SPACE: 0.5,
       ITEM_OFFSET: 0.3,
       TUBE_OFFSET: 0.2,
       CAMERA_OFFSET: 0.2,
@@ -40,6 +48,7 @@ export default Vue.extend({
       tube: null as unknown as THREE.Mesh,
       rectLights: [] as THREE.RectAreaLight[],
       cases: [] as THREE.Mesh[],
+      casePreviews: [] as unknown as NodeListOf<HTMLImageElement> | [],
       sizes: {
         width: 0,
         height: 0,
@@ -132,9 +141,11 @@ export default Vue.extend({
         return;
       }
 
+      this.casePreviews = document.querySelectorAll('#images img');
+
       this.scene = new THREE.Scene();
 
-      this.geometryLength = this.TUBE_OFFSET + this.ITEM_OFFSET + this.ITEMS_COUNT * this.ITEM_SPACE;
+      this.geometryLength = this.TUBE_OFFSET + this.ITEM_OFFSET + this.casePreviews.length * this.ITEM_SPACE;
 
       this.makeTube();
       this.makeLightsAndCases();
@@ -161,7 +172,9 @@ export default Vue.extend({
     makeLightsAndCases() {
       RectAreaLightUniformsLib.init();
 
-      for (let i = 0; i < this.ITEMS_COUNT; i += 1) {
+      const textureLoader = new THREE.TextureLoader();
+
+      for (let i = 0; i < this.casePreviews.length; i += 1) {
         const rectLight = new THREE.RectAreaLight(0xffffff, this.LIGHT_INTENSITY - (Math.min(i, 2) * this.LIGHT_INTENSITY / 2), 0.005, 0.125);
         rectLight.rotation.y = i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
         rectLight.position.x = i % 2 === 0 ? this.HALF_TUBE : -this.HALF_TUBE;
@@ -170,9 +183,13 @@ export default Vue.extend({
         this.scene.add(new RectAreaLightHelper(rectLight));
         this.rectLights.push(rectLight);
 
-        const caseGeometry = new THREE.PlaneGeometry(0.08, 0.08, 1, 1);
+        const caseTexture = textureLoader.load(this.casePreviews[i].src);
+
+        const caseGeometry = new THREE.PlaneGeometry(0.14, 0.08, 1, 1);
         const caseMaterial = new THREE.MeshStandardMaterial({
-          color: i === 0 ? 0x00ff00 : 0x00ffbf,
+          // color: i === 0 ? 0x00ff00 : 0x00ffbf,
+          color: 0x222222,
+          map: caseTexture,
         });
 
         const newCase = new THREE.Mesh(caseGeometry, caseMaterial);
@@ -203,7 +220,7 @@ export default Vue.extend({
       // controls.enableZoom = false;
 
       const render = () => {
-        for (let i = 0; i < this.ITEMS_COUNT; i += 1) {
+        for (let i = 0; i < this.casePreviews.length; i += 1) {
           this.scroll.current = this.lerp(this.scroll.target, this.scroll.base, 0.2);
 
           this.cases[i].position.z += this.speed * this.scroll.current;
